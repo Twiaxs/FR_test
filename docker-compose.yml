@@ -1,0 +1,51 @@
+version: '3.7'
+
+services:
+  backend:
+    container_name: "web"
+    restart: always
+    build:
+      context: ''
+      dockerfile: Dockerfile
+    command: /bin/sh -c "python3 manage.py makemigrations && python3 manage.py migrate && python3 manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14.3
+    container_name: "db"
+    environment:
+      DB_NAME: postgres
+      DB_USER: postgres
+      DB_PASS: gamerzlife
+      POSTGRES_PASSWORD: gamerzlife
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+  redis:
+    image: redis
+    restart: always
+  celery:
+    build: 
+      context: ''
+      dockerfile: Dockerfile
+    command: celery -A core worker -l info 
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build:
+      context: ''
+      dockerfile: Dockerfile
+    command: celery -A core beat -l info 
+    depends_on:
+      - db
+      - redis
+      - celery
+
+volumes:
+  postgres_data:
